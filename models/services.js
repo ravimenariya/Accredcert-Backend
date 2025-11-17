@@ -4,7 +4,8 @@ const serviceSchema = new mongoose.Schema({
     id: String,
     title: String,
     description: String,
-    country: String,
+    // reference to canonical Country
+    country: { type: mongoose.Schema.Types.ObjectId, ref: 'Country' },
     category: String,
     imageUrl: String,
     isActive: Boolean,

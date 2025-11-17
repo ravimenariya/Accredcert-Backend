@@ -10,6 +10,21 @@ exports.getServices = async (req, res) => {
     }
 };
 
+// Get distinct countries from services
+exports.getCountries = async (req, res) => {
+    try {
+        // Use MongoDB distinct to get unique country values, filter empty/null
+        const countries = await Service.distinct('country', { country: { $nin: [null, ""] } });
+        const cleaned = countries
+            .map((c) => (typeof c === 'string' ? c.trim() : c))
+            .filter(Boolean)
+            .sort((a, b) => a.localeCompare(b));
+        res.status(200).json(cleaned);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
 // Get single service by ID
 exports.getServiceById = async (req, res) => {
   const { id } = req.params;

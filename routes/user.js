@@ -5,6 +5,7 @@ const {
   getServices,
   getServiceById,
 } = require("../controllers/serviceController");
+const { getCountries } = require("../controllers/serviceController");
 const { getBlogs, getBlogById } = require("../controllers/blogController");
 const {
   upload,
@@ -12,6 +13,7 @@ const {
 } = require("../controllers/contactController");
 const { getCertificates } = require("../controllers/certificates");
 router.get("/getservices", getServices);
+router.get("/getcountries", getCountries);
 router.get("/getblog/:id", getBlogById);
 router.get("/getblogs", getBlogs);
 router.get("/getcertificates", getCertificates);

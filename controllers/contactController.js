@@ -28,7 +28,7 @@ const contactFormHandler = async (req, res) => {
       },
     });
 
-    const recipient = process.env.CONTACT_EMAIL || process.env.EMAIL_USER || "dhaneshjoshi842@gmail.com";
+    const recipient = process.env.CONTACT_EMAIL || process.env.EMAIL_USER || "accredcertmanagement@gmail.com";
 
     const mailOptions = {
       from: `"${name}" <${process.env.EMAIL_USER}>`,

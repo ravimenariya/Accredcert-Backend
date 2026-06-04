@@ -11,6 +11,22 @@ const toTitleCase = (str) =>
         .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : ""))
         .join(" ");
 
+const isObjectIdLike = (value) => {
+    if (!value) return false;
+    if (typeof value === 'string') return /^[a-fA-F0-9]{24}$/.test(value);
+    return value && typeof value === 'object' && value.constructor && value.constructor.name === 'ObjectId';
+};
+
+// Supports both legacy string country values and populated Country refs.
+const extractCountryName = (countryValue) => {
+    if (!countryValue) return "";
+    if (typeof countryValue === 'string') return countryValue;
+    if (countryValue && typeof countryValue === 'object' && countryValue.name) {
+        return String(countryValue.name);
+    }
+    return "";
+};
+
 // Find existing country (case-insensitive) or create it, return Country document
 const findOrCreateCountry = async (name) => {
     if (!name) return null;
@@ -28,13 +44,38 @@ const findOrCreateCountry = async (name) => {
 
 exports.getServices = async (req, res) => {
     try {
-        const data = await Service.find().populate('country', 'name');
-        // transform to return country as name string for compatibility
-        const transformed = data.map((s) => {
-            const obj = s.toObject();
-            obj.country = s.country && s.country.name ? s.country.name : "";
+        const data = await Service.find().lean();
+
+        const countryIds = Array.from(
+            new Set(
+                data
+                    .map((s) => s.country)
+                    .filter((value) => isObjectIdLike(value))
+                    .map((value) => String(value))
+            )
+        );
+
+        const countryDocs = countryIds.length
+            ? await Country.find({ _id: { $in: countryIds } }, 'name').lean()
+            : [];
+
+        const countryMap = new Map(countryDocs.map((c) => [String(c._id), c.name]));
+
+        // Transform to always return a country name string for frontend compatibility.
+        const transformed = data.map((obj) => {
+            const rawCountry = obj.country;
+            if (typeof rawCountry === 'string') {
+                obj.country = rawCountry;
+            } else if (rawCountry && typeof rawCountry === 'object' && rawCountry.name) {
+                obj.country = String(rawCountry.name);
+            } else if (isObjectIdLike(rawCountry)) {
+                obj.country = countryMap.get(String(rawCountry)) || "";
+            } else {
+                obj.country = "";
+            }
             return obj;
         });
+
         res.status(200).json(transformed);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -55,12 +96,25 @@ exports.getCountries = async (req, res) => {
 exports.getServiceById = async (req, res) => {
     const { id } = req.params;
     try {
-        const service = await Service.findById(id).populate('country', 'name');
+        const service = await Service.findById(id).lean();
         if (!service) {
             return res.status(404).json({ message: "Service not found" });
         }
-        const obj = service.toObject();
-        obj.country = service.country && service.country.name ? service.country.name : "";
+
+        const obj = { ...service };
+        const rawCountry = obj.country;
+
+        if (typeof rawCountry === 'string') {
+            obj.country = rawCountry;
+        } else if (rawCountry && typeof rawCountry === 'object' && rawCountry.name) {
+            obj.country = String(rawCountry.name);
+        } else if (isObjectIdLike(rawCountry)) {
+            const countryDoc = await Country.findById(rawCountry, 'name').lean();
+            obj.country = countryDoc?.name || "";
+        } else {
+            obj.country = "";
+        }
+
         res.status(200).json(obj);
     } catch (err) {
         console.error(err);

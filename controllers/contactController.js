@@ -28,10 +28,12 @@ const contactFormHandler = async (req, res) => {
       },
     });
 
+    const recipient = process.env.CONTACT_EMAIL || process.env.EMAIL_USER || "dhaneshjoshi842@gmail.com";
+
     const mailOptions = {
-      from: `"${name}" <${process.env.EMAIL_USER}>`, // fixed sender
-      replyTo: email, 
-      to:"dhaneshjoshi842@gmail.com",
+      from: `"${name}" <${process.env.EMAIL_USER}>`,
+      replyTo: email,
+      to: recipient,
       subject: subject || "New Contact Message",
       text: message,
       attachments: req.file

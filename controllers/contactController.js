@@ -15,18 +15,31 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-// Contact form handler
-const contactFormHandler = async (req, res) => {
-  try {
-    const { name, email, subject, message } = req.body;
-
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
+let transporter;
+const getTransporter = () => {
+  if (!transporter) {
+    transporter = nodemailer.createTransport({
+      host: "smtp.gmail.com",
+      port: 465,
+      secure: true, // true for port 465
+      pool: true, // use connection pooling
+      maxConnections: 5,
+      maxMessages: 100,
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
       },
     });
+  }
+  return transporter;
+};
+
+// Contact form handler
+const contactFormHandler = async (req, res) => {
+  try {
+    const { name, email, subject, message } = req.body;
+
+    const currentTransporter = getTransporter();
 
     const recipient = process.env.CONTACT_EMAIL || process.env.EMAIL_USER || "accredcertmanagement@gmail.com";
 
@@ -46,7 +59,7 @@ const contactFormHandler = async (req, res) => {
         : [],
     };
 
-    await transporter.sendMail(mailOptions);
+    await currentTransporter.sendMail(mailOptions);
 
     if (req.file) {
       fs.unlinkSync(req.file.path);
@@ -59,3 +72,4 @@ const contactFormHandler = async (req, res) => {
 };
 
 module.exports = { upload, contactFormHandler };
+
